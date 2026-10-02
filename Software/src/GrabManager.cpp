@@ -36,6 +36,10 @@
 #include "WinAPIGrabber.hpp"
 #include "DDuplGrabber.hpp"
 #include "X11Grabber.hpp"
+#ifdef WAYLAND_GRAB_SUPPORT
+#include "portal-compat.h"
+#include "WaylandGrabber.hpp"
+#endif
 #include "MacOSCGGrabber.hpp"
 #include "MacOSAVGrabber.h"
 #include "D3D10Grabber.hpp"
@@ -210,6 +214,26 @@ void GrabManager::onGrabberTypeChanged(const Grab::GrabberType grabberType)
 	DEBUG_LOW_LEVEL << Q_FUNC_INFO << grabberType;
 	QApplication::setOverrideCursor(Qt::WaitCursor);
 
+	// Auto-detect Wayland grabber for KDE Plasma
+	Grab::GrabberType effectiveType = grabberType;
+#ifdef WAYLAND_GRAB_SUPPORT
+	if (Settings::isWaylandGrabberEnabled()) {
+		effectiveType = Grab::GrabberTypeWayland;
+		DEBUG_LOW_LEVEL << Q_FUNC_INFO << "Wayland grabber explicitly enabled in settings, using WaylandGrabber";
+	} else if (effectiveType == Grab::GrabberTypeX11 || effectiveType == Grab::GrabberTypeQt) {
+		const char *sessionType = qgetenv("XDG_SESSION_TYPE");
+		const char *desktop = qgetenv("XDG_CURRENT_DESKTOP");
+		if (sessionType && QString(sessionType).contains("wayland", Qt::CaseInsensitive)) {
+			if (desktop && QString(desktop).contains("KDE", Qt::CaseInsensitive)) {
+				effectiveType = Grab::GrabberTypeWayland;
+				DEBUG_LOW_LEVEL << Q_FUNC_INFO << "auto-detected Wayland session (KDE Plasma), using WaylandGrabber";
+			}
+		}
+	}
+#else
+	Q_UNUSED(effectiveType)
+#endif
+
 	bool isStartNeeded = false;
 	if (m_grabber != NULL) {
 		isStartNeeded = m_grabber->isGrabbingStarted();
@@ -219,7 +243,7 @@ void GrabManager::onGrabberTypeChanged(const Grab::GrabberType grabberType)
 		m_grabber->stopGrabbing();
 	}
 
-	m_grabber = queryGrabber(grabberType);
+	m_grabber = queryGrabber(effectiveType);
 
 	if (isStartNeeded) {
 #ifdef D3D10_GRAB_SUPPORT
@@ -639,6 +663,10 @@ void GrabManager::initGrabbers()
 	DDuplGrabber* dDuplGrabber = new DDuplGrabber(NULL, m_grabberContext);
 	m_grabbers[Grab::GrabberTypeDDupl] = initGrabber(dDuplGrabber);
 	connect(this, &GrabManager::onSessionChange, dDuplGrabber, &DDuplGrabber::onSessionChange);
+#endif
+
+#ifdef WAYLAND_GRAB_SUPPORT
+	m_grabbers[Grab::GrabberTypeWayland] = initGrabber(new WaylandGrabber(NULL, m_grabberContext));
 #endif
 
 #ifdef X11_GRAB_SUPPORT

@@ -66,6 +66,7 @@ enum GrabberType {
 	GrabberTypeQt,
 	GrabberTypeQtEachWidget,
 	GrabberTypeX11,
+	GrabberTypeWayland,
 	GrabberTypeWinAPI,
 	GrabberTypeWinAPIEachWidget,
 	GrabberTypeD3D9,

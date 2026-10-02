@@ -331,6 +331,10 @@ void SettingsWindow::connectSignalsSlots()
 	connect(ui->checkBox_EnableDx9Capture, &QCheckBox::toggled, this, &SettingsWindow::onDx9CaptureEnabledChanged);
 #endif
 
+#ifdef WAYLAND_GRAB_SUPPORT
+	connect(ui->checkBox_EnableWaylandGrabber, &QCheckBox::toggled, this, &SettingsWindow::onWaylandGrabberEnabledChanged);
+#endif
+
 
 	// Dev tab configure API (port, apikey)
 	connect(ui->groupBox_Api, &QGroupBox::toggled, this, &SettingsWindow::onEnableApi_Toggled);
@@ -845,6 +849,9 @@ void SettingsWindow::initGrabbersRadioButtonsVisibility()
 #ifndef D3D10_GRAB_SUPPORT
 	ui->checkBox_EnableDx1011Capture->setVisible(false);
 	ui->checkBox_EnableDx9Capture->setVisible(false);
+#endif
+#ifndef WAYLAND_GRAB_SUPPORT
+	ui->checkBox_EnableWaylandGrabber->setVisible(false);
 #endif
 #ifndef X11_GRAB_SUPPORT
 	ui->radioButton_GrabX11->setVisible(false);
@@ -2010,6 +2017,10 @@ void SettingsWindow::updateUiFromSettings()
 	ui->checkBox_EnableDx9Capture->setChecked(Settings::isDx9GrabbingEnabled());
 #endif
 
+#ifdef WAYLAND_GRAB_SUPPORT
+	ui->checkBox_EnableWaylandGrabber->setChecked(Settings::isWaylandGrabberEnabled());
+#endif
+
 	onMoodLampLiquidMode_Toggled(ui->radioButton_LiquidColorMoodLampMode->isChecked());
 	updateDeviceTabWidgetsVisibility();
 	onGrabberChanged();
@@ -2051,6 +2062,19 @@ Grab::GrabberType SettingsWindow::getSelectedGrabberType()
 bool SettingsWindow::isDx1011CaptureEnabled() {
 	return ui->checkBox_EnableDx1011Capture->isChecked();
 }
+
+#ifdef WAYLAND_GRAB_SUPPORT
+void SettingsWindow::onWaylandGrabberEnabledChanged(bool isEnabled) {
+	if (!updatingFromSettings) {
+		DEBUG_LOW_LEVEL << Q_FUNC_INFO << isEnabled;
+		Settings::setWaylandGrabberEnabled(isEnabled);
+	}
+}
+
+bool SettingsWindow::isWaylandGrabberEnabled() {
+	return ui->checkBox_EnableWaylandGrabber->isChecked();
+}
+#endif
 
 // ----------------------------------------------------------------------------
 // Quit application

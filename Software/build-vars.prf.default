@@ -32,6 +32,8 @@ unix:!macx {
 	# QMAKE_CXXFLAGS_DEBUG += -ggdb
 	# QMAKE_CXXFLAGS_RELEASE += -march=native
 	DEFINES += PULSEAUDIO_SUPPORT
+	DEFINES += WAYLAND_GRAB_SUPPORT
+	DEFINES += X11_GRAB_SUPPORT
 	# PULSEAUDIO_INC_DIR = "../../../pulseaudio/src"
 	# PULSEAUDIO_LIB_DIR = "../../../pulseaudio/src/.libs"
 	# FFTW3_INC_DIR = "../../../fftw-3.3.8/api"

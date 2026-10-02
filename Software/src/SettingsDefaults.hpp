@@ -173,6 +173,9 @@ static const bool IsSendDataOnlyIfColorsChangesDefault = false;
 static const bool IsMinimumLuminosityEnabledDefault = true;
 static const bool IsDx1011GrabberEnabledDefault = false;
 static const bool IsDx9GrabbingEnabledDefault = false;
+#ifdef WAYLAND_GRAB_SUPPORT
+static const bool IsWaylandGrabberEnabledDefault = false;
+#endif
 static const int SlowdownMin = 1;
 static const int SlowdownDefault = 50;
 static const int SlowdownMax = 1000;

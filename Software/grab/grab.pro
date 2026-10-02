@@ -35,6 +35,21 @@ CONFIG(clang) {
 DEFINES += $${SUPPORTED_GRABBERS}
 # Linux/UNIX platform
 unix:!macx {
+    contains(DEFINES, WAYLAND_GRAB_SUPPORT) {
+        GRABBERS_HEADERS += include/WaylandGrabber.hpp
+        GRABBERS_SOURCES += WaylandGrabber.cpp
+        PKGCONFIG += libportal libpipewire-0.3 libspa-0.2
+        LIBS += -lportal
+        INCLUDEPATH += /usr/include/libportal
+        # PipeWire
+        INCLUDEPATH += /usr/include/pipewire-0.3
+        INCLUDEPATH += /usr/include/spa-0.2
+        # glib/gio — needed for portal.h at compile time
+        # Only WaylandGrabber.cpp includes portal.h, so this is safe.
+        INCLUDEPATH += /usr/include/glib-2.0
+        INCLUDEPATH += /usr/lib/x86_64-linux-gnu/glib-2.0/include
+        INCLUDEPATH += /usr/include/gio-unix-2.0
+    }
     contains(DEFINES, X11_GRAB_SUPPORT) {
         GRABBERS_HEADERS += include/X11Grabber.hpp
         GRABBERS_SOURCES += X11Grabber.cpp

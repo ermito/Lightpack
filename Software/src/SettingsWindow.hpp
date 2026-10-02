@@ -187,6 +187,10 @@ private slots:
 	void onDx1011CaptureEnabledChanged(bool isEnabled);
 	void onDx9CaptureEnabledChanged(bool isEnabled);
 
+#ifdef WAYLAND_GRAB_SUPPORT
+	void onWaylandGrabberEnabledChanged(bool isEnabled);
+#endif
+
 	void onDontShowLedWidgets_Toggled(bool checked);
 	void onSetColoredLedWidgets(bool checked);
 	void onSetWhiteLedWidgets(bool checked);
@@ -288,6 +292,10 @@ private:
 	Grab::GrabberType getSelectedGrabberType();
 
 	bool isDx1011CaptureEnabled();
+
+#ifdef WAYLAND_GRAB_SUPPORT
+	bool isWaylandGrabberEnabled();
+#endif
 
 	QList<QLabel *> m_labelsGrabbedColors;
 

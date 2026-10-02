@@ -212,6 +212,11 @@ public:
 	static void setDx9GrabbingEnabled(bool isEnabled);
 #endif
 
+#ifdef WAYLAND_GRAB_SUPPORT
+	static bool isWaylandGrabberEnabled();
+	static void setWaylandGrabberEnabled(bool isEnabled);
+#endif
+
 	static Lightpack::Mode getLightpackMode();
 	static void setLightpackMode(Lightpack::Mode mode);
 	static bool isMoodLampLiquidMode();
@@ -371,6 +376,10 @@ signals:
 #ifdef D3D10_GRAB_SUPPORT
 	void dx1011GrabberEnabledChanged(bool isEnabled);
 	void dx9GrabberEnabledChanged(bool isEnabled);
+#endif
+
+#ifdef WAYLAND_GRAB_SUPPORT
+	void waylandGrabberEnabledChanged(bool isEnabled);
 #endif
 	void lightpackModeChanged(const Lightpack::Mode mode);
 	void moodLampLiquidModeChanged(bool isLiquidMode);

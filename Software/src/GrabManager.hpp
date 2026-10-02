@@ -27,6 +27,10 @@
 
 #include <QtGui>
 
+/* Workaround: glib-object.h can define 'public' macro conflicting with Qt. */
+#ifdef public
+#undef public
+#endif
 #include "GrabberBase.hpp"
 #include "enums.hpp"
 

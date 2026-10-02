@@ -199,6 +199,20 @@ win32 {
 unix:!macx{
     # Linux version using libusb and hidapi codes
     SOURCES += hidapi/linux/hid-libusb.c
+
+    contains(DEFINES, WAYLAND_GRAB_SUPPORT) {
+        PKGCONFIG += libportal libpipewire-0.3 libspa-0.2
+        LIBS += -lportal
+        # Only for WaylandGrabber.hpp — must come after Qt includes in .cpp files
+        # to avoid glib 'public' macro conflicts with Qt Q_SIGNALS.
+        INCLUDEPATH += /usr/include/libportal
+        INCLUDEPATH += /usr/include/glib-2.0
+        INCLUDEPATH += /usr/lib/x86_64-linux-gnu/glib-2.0/include
+        INCLUDEPATH += /usr/include/gio-unix-2.0
+        INCLUDEPATH += /usr/include/pipewire-0.3
+        INCLUDEPATH += /usr/include/spa-0.2
+    }
+
     # For X11 grabber
     LIBS +=-lXext -lX11
 

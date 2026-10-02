@@ -2837,6 +2837,17 @@ Internally emulates the effects of f.lux, redshift, Night Light, Night Shift...<
          </widget>
         </item>
         <item>
+         <widget class="QCheckBox" name="checkBox_EnableWaylandGrabber">
+          <property name="text">
+           <string>Use Wayland grabber (KDE Plasma)</string>
+          </property>
+          <property name="icon">
+           <iconset resource="../res/LightpackResources.qrc">
+            <normaloff>:/icons/uac-shield.png</normaloff>:/icons/uac-shield.png</iconset>
+          </property>
+         </widget>
+        </item>
+        <item>
          <layout class="QHBoxLayout" name="horizontalLayout_5">
           <item>
            <widget class="QLabel" name="label_LoggingLevel">
@@ -3291,6 +3302,7 @@ Internally emulates the effects of f.lux, redshift, Night Light, Night Shift...<
   <tabstop>radioButton_GrabDDupl</tabstop>
   <tabstop>checkBox_EnableDx1011Capture</tabstop>
   <tabstop>checkBox_EnableDx9Capture</tabstop>
+  <tabstop>checkBox_EnableWaylandGrabber</tabstop>
   <tabstop>spinBox_LoggingLevel</tabstop>
   <tabstop>toolButton_OpenLogs</tabstop>
   <tabstop>checkBox_PingDeviceEverySecond</tabstop>

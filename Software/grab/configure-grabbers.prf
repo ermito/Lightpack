@@ -1,7 +1,18 @@
 # Grabber types detection
 # Linux/UNIX platform
 unix:!macx {
-    SUPPORTED_GRABBERS += X11_GRAB_SUPPORT
+    contains(DEFINES, WAYLAND_GRAB_SUPPORT) {
+        SUPPORTED_GRABBERS += WAYLAND_GRAB_SUPPORT
+    }
+    contains(DEFINES, X11_GRAB_SUPPORT) {
+        SUPPORTED_GRABBERS += X11_GRAB_SUPPORT
+    }
+    # If neither is explicitly defined, default to X11
+    !contains(DEFINES, WAYLAND_GRAB_SUPPORT) {
+        !contains(DEFINES, X11_GRAB_SUPPORT) {
+            SUPPORTED_GRABBERS += X11_GRAB_SUPPORT
+        }
+    }
 }
 
 # Mac platform
