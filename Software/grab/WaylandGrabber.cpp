@@ -115,7 +115,10 @@ _pw_stream_param_changed(void *userData, uint32_t id, const struct spa_pod *para
     auto *self = static_cast<PipeWireWorker *>(userData);
     Q_UNUSED(self);
 
-    if (id != SPA_PARAM_EnumFormat && id != SPA_PARAM_Format) {
+    /* param may be NULL — PipeWire delivers param_changed with NULL param
+     * on stream reset/disconnect (OBS: "if (!param || id != SPA_PARAM_Format)
+     * return;"). */
+    if (!param || (id != SPA_PARAM_EnumFormat && id != SPA_PARAM_Format)) {
         return;
     }
 
