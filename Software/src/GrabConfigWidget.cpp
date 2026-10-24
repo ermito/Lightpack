@@ -242,10 +242,10 @@ void GrabConfigWidget::paintArrow(QPainter *p, ArrowSide side)
 	}
 
 	p->setPen(QColor(0x77, 0x77, 0x77));
-	p->fillRect(mainRect, Qt::white);
+	p->fillRect(mainRect, palette().window());
 	p->drawRect(mainRect);
 
-	p->fillPath(pathArrow, Qt::white);
+	p->fillPath(pathArrow, palette().window());
 	p->drawPath(pathArrow);
 
 	p->setPen(Qt::white);
