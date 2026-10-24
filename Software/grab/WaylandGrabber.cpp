@@ -55,6 +55,8 @@
 #include <QApplication>
 #include <QScreen>
 
+#include "GrabberContext.hpp"
+
 #include <cstring>
 #include <algorithm>
 #include <sys/mman.h>
@@ -724,6 +726,59 @@ GrabResult WaylandGrabber::grabScreens()
 
     if (!m_frameReady) {
         return GrabResultFrameNotReady;
+    }
+
+    /* Ensure the frame buffer is sized for the actual captured frame
+     * (PipeWire negotiated dimensions), not just the largest screen.
+     * This is critical: the captured frame may be a composite of all
+     * monitors and can be larger than any single screen. */
+    int capturedW = m_frameWidth;
+    int capturedH = m_frameHeight;
+    int capturedStride = m_frameStride;
+
+    if (m_pwWorker) {
+        capturedW = m_pwWorker->m_bufWidth;
+        capturedH = m_pwWorker->m_bufHeight;
+        capturedStride = m_pwWorker->m_bufStride;
+    }
+
+    if (capturedW > 0 && capturedH > 0 && capturedStride >= capturedW * 4) {
+        int newSize = capturedStride * capturedH;
+        if (!m_frameBuffer || m_frameWidth != capturedW || m_frameHeight != capturedH || m_frameStride != capturedStride) {
+            free(m_frameBuffer);
+            m_frameBuffer = static_cast<unsigned char *>(malloc(newSize));
+            if (!m_frameBuffer) {
+                qCritical() << Q_FUNC_INFO << "failed to allocate frame buffer" << newSize;
+                m_frameReady = false;
+                return GrabResultError;
+            }
+            memset(m_frameBuffer, 0, newSize);
+            m_frameWidth = capturedW;
+            m_frameHeight = capturedH;
+            m_frameStride = capturedStride;
+            DEBUG_LOW_LEVEL << Q_FUNC_INFO << "realloc frame buffer" << capturedW << "x" << capturedH << "stride" << capturedStride;
+        }
+
+        /* Populate _screensWithWidgets so GrabberBase::grab() can find
+         * the frame data. One GrabbedScreen per screen, all pointing to
+         * the same m_frameBuffer. GrabberBase clips widget coordinates
+         * to each monitor's rect, so this works correctly. */
+        QList<ScreenInfo> activeScreens;
+        screensWithWidgets(&activeScreens, *_context->grabWidgets);
+
+        _screensWithWidgets.clear();
+        for (const auto &screen : activeScreens) {
+            GrabbedScreen grabScreen;
+            grabScreen.imgData       = m_frameBuffer;
+            grabScreen.imgDataSize   = newSize;
+            grabScreen.imgFormat     = BufferFormatBgra;
+            grabScreen.bytesPerRow   = capturedStride;
+            grabScreen.screenInfo    = screen;
+            grabScreen.scale         = 1.0;
+            grabScreen.rotation      = 0;
+            _screensWithWidgets.append(grabScreen);
+        }
+        DEBUG_LOW_LEVEL << Q_FUNC_INFO << "populated" << _screensWithWidgets.size() << "screens";
     }
 
     /* Frame is ready — reset for next cycle */

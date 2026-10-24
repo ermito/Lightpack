@@ -32,7 +32,7 @@
 #define PIXEL_FORMAT_ARGB 2,1,0 // channel positions in a 4 byte color
 #define PIXEL_FORMAT_ABGR 0,1,2
 #define PIXEL_FORMAT_RGBA 3,2,1
-#define PIXEL_FORMAT_BGRA 1,2,3
+#define PIXEL_FORMAT_BGRA 2,1,0
 
 
 namespace {
