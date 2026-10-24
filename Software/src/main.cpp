@@ -34,6 +34,10 @@
 #include "LogWriter.hpp"
 #include "SettingsWizard.hpp"
 
+#ifdef WAYLAND_GRAB_SUPPORT
+#include <pipewire/pipewire.h>
+#endif
+
 #ifdef Q_OS_WIN
 #if !defined NOMINMAX
 #define NOMINMAX
@@ -105,6 +109,13 @@ QString getApplicationDirectoryPath(const char * firstCmdArgument)
 
 int main(int argc, char **argv)
 {
+#ifdef WAYLAND_GRAB_SUPPORT
+	// Required before any pw_* call (PipeWire >= 1.4.2): it sets up the SPA
+	// library search path (SPA_PLUGIN_DIR, etc.). Without it, spa_get_path()
+	// returns NULL and pw_loop_new() fails, so the PipeWire worker thread can
+	// never create its loop and no frames arrive.
+	pw_init(&argc, &argv);
+#endif
 
 #if defined Q_OS_MACOS && __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_10_9
     bool canUseLatencyCriticalOption = false;
@@ -137,8 +148,6 @@ int main(int argc, char **argv)
 	Q_UNUSED(messageHandlerGuard);
 
 	LightpackApplication lightpackApp(argc, argv);
-
-	// init the logger after initializeAll to know the configured debugLevel
 
 	const int logInitResult = g_debugLevel > 0 ? logWriter.initEnabled(lightpackApp.configDir() + "/Logs") : logWriter.initDisabled(lightpackApp.configDir() + "/Logs");
 	if (logInitResult != LightpackApplication::OK_ErrorCode)

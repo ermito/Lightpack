@@ -32,6 +32,7 @@
 #ifdef WAYLAND_GRAB_SUPPORT
 
 #include <QThread>
+#include <atomic>
 #include "../src/debug.h"
 
 /* Opaque PipeWire worker — all PipeWire types hidden in .cpp */
@@ -39,24 +40,57 @@ class PipeWireWorker : public QThread
 {
     Q_OBJECT
 public:
-    explicit PipeWireWorker(QObject *parent = nullptr) : QThread(parent) {}
+    explicit PipeWireWorker(QObject *parent = nullptr) : QThread(parent)
+        , m_fd(-1)
+        , m_nodeId(0)
+        , m_bufWidth(0)
+        , m_bufHeight(0)
+        , m_bufStride(0)
+        , m_frameBuffer(nullptr)
+        , m_pwStream(nullptr)
+        , m_coreSyncDone(false)
+        , m_syncId(0)
+        , m_pwLoop(nullptr)
+        , m_eventSource(nullptr)
+        , m_stopRequested(false)
+    {}
 
     void run() override;
 
     void setFd(int fd);
+    void setNodeId(uint32_t nodeId);
     void setBufferSize(int width, int height, int stride);
     void setFrameBuffer(void *buf);
+
+    /* Ask the worker thread to stop. Sets m_stopRequested and breaks the
+     * PipeWire loop (pw_loop_break is thread-safe). All PipeWire objects are
+     * created and destroyed on the worker thread inside run(); the GUI thread
+     * must NOT destroy them itself. */
+    void stopWorker();
 
 signals:
     void frameReady();
 
 public:
     int m_fd;
+    uint32_t m_nodeId;    /* PipeWire node ID from portal streams array */
     int m_bufWidth;
     int m_bufHeight;
     int m_bufStride;
     void *m_frameBuffer; /* set from run() — used by _pw_stream_process */
     void *m_pwStream;   /* opaque pw_stream* — set from run() */
+
+    /* Core-sync handshake (OBS pattern). The core .done callback sets
+     * m_coreSyncDone; run() pumps the loop until it is true so the stream
+     * is only connected once the daemon is actually ready. */
+    bool m_coreSyncDone;
+    uint32_t m_syncId;
+
+    /* PipeWire loop + stop-event source (cross-thread stop). Set by run(),
+     * read by stopWorker() (GUI thread) to break the blocked iterate. */
+    void *m_pwLoop;
+    void *m_eventSource;
+    std::atomic<bool> m_stopRequested;
 };
 
 class WaylandGrabber : public GrabberBase
@@ -65,6 +99,11 @@ class WaylandGrabber : public GrabberBase
 public:
     WaylandGrabber(QObject *parent, GrabberContext *context);
     virtual ~WaylandGrabber();
+
+    void startGrabbing() override;
+    void stopGrabbing() override;
+
+    void setSaveFramesEnabled(bool enabled);
 
     DECLARE_GRABBER_NAME("WaylandGrabber")
 

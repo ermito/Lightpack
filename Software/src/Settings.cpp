@@ -198,6 +198,7 @@ static const QString IsDx1011GrabberEnabled = QStringLiteral("Grab/IsDX1011Grabb
 static const QString IsDx9GrabbingEnabled = QStringLiteral("Grab/IsDX9GrabbingEnabled");
 #ifdef WAYLAND_GRAB_SUPPORT
 static const QString IsWaylandGrabberEnabled = QStringLiteral("Grab/IsWaylandGrabberEnabled");
+static const QString SaveGrabbedFrames = QStringLiteral("Grab/SaveGrabbedFrames");
 #endif
 static const QString IsApplyBlueLightReductionEnabled = QStringLiteral("Grab/IsApplyGammaRampEnabled");
 static const QString IsApplyColorTemperatureEnabled = QStringLiteral("Grab/IsApplyColorTemperatureEnabled");
@@ -1656,6 +1657,13 @@ void Settings::setWaylandGrabberEnabled(bool isEnabled) {
 	setValue(Profile::Key::Grab::IsWaylandGrabberEnabled, isEnabled);
 	emit m_this->waylandGrabberEnabledChanged(isEnabled);
 }
+bool Settings::isSaveGrabbedFramesEnabled() {
+	return value(Profile::Key::Grab::SaveGrabbedFrames).toBool();
+}
+void Settings::setSaveGrabbedFramesEnabled(bool isEnabled) {
+	setValue(Profile::Key::Grab::SaveGrabbedFrames, isEnabled);
+	emit m_this->saveGrabbedFramesEnabledChanged(isEnabled);
+}
 #endif
 
 Lightpack::Mode Settings::getLightpackMode()
@@ -2125,6 +2133,7 @@ void Settings::initCurrentProfile(bool isResetDefault)
 	setNewOption(Profile::Key::Grab::IsDx9GrabbingEnabled,			Profile::Grab::IsDx9GrabbingEnabledDefault, isResetDefault);
 #ifdef WAYLAND_GRAB_SUPPORT
 	setNewOption(Profile::Key::Grab::IsWaylandGrabberEnabled,		Profile::Grab::IsWaylandGrabberEnabledDefault, isResetDefault);
+	setNewOption(Profile::Key::Grab::SaveGrabbedFrames,				Profile::Grab::SaveGrabbedFramesDefault, isResetDefault);
 #endif
 	setNewOption(Profile::Key::Grab::IsApplyBlueLightReductionEnabled,		Profile::Grab::IsApplyBlueLightReductionEnabledDefault, isResetDefault);
 	setNewOption(Profile::Key::Grab::IsApplyColorTemperatureEnabled,Profile::Grab::IsApplyColorTemperatureEnabledDefault, isResetDefault);

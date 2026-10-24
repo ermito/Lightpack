@@ -175,6 +175,7 @@ static const bool IsDx1011GrabberEnabledDefault = false;
 static const bool IsDx9GrabbingEnabledDefault = false;
 #ifdef WAYLAND_GRAB_SUPPORT
 static const bool IsWaylandGrabberEnabledDefault = false;
+static const bool SaveGrabbedFramesDefault = false;
 #endif
 static const int SlowdownMin = 1;
 static const int SlowdownDefault = 50;

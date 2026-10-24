@@ -189,6 +189,7 @@ private slots:
 
 #ifdef WAYLAND_GRAB_SUPPORT
 	void onWaylandGrabberEnabledChanged(bool isEnabled);
+	void onSaveGrabbedFramesChanged(bool enabled);
 #endif
 
 	void onDontShowLedWidgets_Toggled(bool checked);
@@ -295,6 +296,7 @@ private:
 
 #ifdef WAYLAND_GRAB_SUPPORT
 	bool isWaylandGrabberEnabled();
+	bool isSaveGrabbedFramesEnabled();
 #endif
 
 	QList<QLabel *> m_labelsGrabbedColors;

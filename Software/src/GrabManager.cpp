@@ -77,13 +77,33 @@ GrabManager::GrabManager(QWidget *parent) : QObject(parent)
 	m_grabCountThisInterval = 0;
 
 	m_blueLightClient = nullptr;
+	m_waylandGrabber = nullptr;
 
 	m_grabberContext = new GrabberContext();
 
 	m_isSendDataOnlyIfColorsChanged = Settings::isSendDataOnlyIfColorsChanges();
 
 	initGrabbers();
-	m_grabber = queryGrabber(Settings::getGrabberType());
+
+	/* Auto-detect Wayland grabber during startup */
+	Grab::GrabberType effectiveType = Settings::getGrabberType();
+#ifdef WAYLAND_GRAB_SUPPORT
+	if (Settings::isWaylandGrabberEnabled()) {
+		effectiveType = Grab::GrabberTypeWayland;
+		DEBUG_LOW_LEVEL << Q_FUNC_INFO << "Wayland grabber explicitly enabled in settings, using WaylandGrabber";
+	} else if (effectiveType == Grab::GrabberTypeX11 || effectiveType == Grab::GrabberTypeQt) {
+		const char *sessionType = qgetenv("XDG_SESSION_TYPE");
+		const char *desktop = qgetenv("XDG_CURRENT_DESKTOP");
+		if (sessionType && QString(sessionType).contains("wayland", Qt::CaseInsensitive)) {
+			if (desktop && QString(desktop).contains("KDE", Qt::CaseInsensitive)) {
+				effectiveType = Grab::GrabberTypeWayland;
+				DEBUG_LOW_LEVEL << Q_FUNC_INFO << "auto-detected Wayland session (KDE Plasma), using WaylandGrabber";
+			}
+		}
+	}
+#endif
+
+	m_grabber = queryGrabber(effectiveType);
 
 	m_timerUpdateFPS = new QTimer(this);
 	m_timerUpdateFPS->setTimerType(Qt::PreciseTimer);
@@ -666,7 +686,18 @@ void GrabManager::initGrabbers()
 #endif
 
 #ifdef WAYLAND_GRAB_SUPPORT
-	m_grabbers[Grab::GrabberTypeWayland] = initGrabber(new WaylandGrabber(NULL, m_grabberContext));
+	{
+		m_waylandGrabber = static_cast<WaylandGrabber *>(initGrabber(new WaylandGrabber(NULL, m_grabberContext)));
+		m_grabbers[Grab::GrabberTypeWayland] = m_waylandGrabber;
+		m_waylandGrabber->setSaveFramesEnabled(Settings::isSaveGrabbedFramesEnabled());
+	}
+	/* Update WaylandGrabber frame-saving flag when Settings change at runtime */
+	connect(Settings::settingsSingleton(), &Settings::saveGrabbedFramesEnabledChanged,
+	        this, [this](bool enabled) {
+			if (m_waylandGrabber) {
+				m_waylandGrabber->setSaveFramesEnabled(enabled);
+			}
+		});
 #endif
 
 #ifdef X11_GRAB_SUPPORT

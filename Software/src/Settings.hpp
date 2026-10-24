@@ -215,6 +215,8 @@ public:
 #ifdef WAYLAND_GRAB_SUPPORT
 	static bool isWaylandGrabberEnabled();
 	static void setWaylandGrabberEnabled(bool isEnabled);
+	static bool isSaveGrabbedFramesEnabled();
+	static void setSaveGrabbedFramesEnabled(bool isEnabled);
 #endif
 
 	static Lightpack::Mode getLightpackMode();
@@ -380,6 +382,7 @@ signals:
 
 #ifdef WAYLAND_GRAB_SUPPORT
 	void waylandGrabberEnabledChanged(bool isEnabled);
+	void saveGrabbedFramesEnabledChanged(bool isEnabled);
 #endif
 	void lightpackModeChanged(const Lightpack::Mode mode);
 	void moodLampLiquidModeChanged(bool isLiquidMode);

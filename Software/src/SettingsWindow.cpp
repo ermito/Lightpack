@@ -333,6 +333,7 @@ void SettingsWindow::connectSignalsSlots()
 
 #ifdef WAYLAND_GRAB_SUPPORT
 	connect(ui->checkBox_EnableWaylandGrabber, &QCheckBox::toggled, this, &SettingsWindow::onWaylandGrabberEnabledChanged);
+	connect(ui->checkBox_SaveGrabbedFrames, &QCheckBox::toggled, this, &SettingsWindow::onSaveGrabbedFramesChanged);
 #endif
 
 
@@ -2019,6 +2020,7 @@ void SettingsWindow::updateUiFromSettings()
 
 #ifdef WAYLAND_GRAB_SUPPORT
 	ui->checkBox_EnableWaylandGrabber->setChecked(Settings::isWaylandGrabberEnabled());
+	ui->checkBox_SaveGrabbedFrames->setChecked(Settings::isSaveGrabbedFramesEnabled());
 #endif
 
 	onMoodLampLiquidMode_Toggled(ui->radioButton_LiquidColorMoodLampMode->isChecked());
@@ -2071,8 +2073,19 @@ void SettingsWindow::onWaylandGrabberEnabledChanged(bool isEnabled) {
 	}
 }
 
+void SettingsWindow::onSaveGrabbedFramesChanged(bool enabled) {
+	if (!updatingFromSettings) {
+		DEBUG_LOW_LEVEL << Q_FUNC_INFO << enabled;
+		Settings::setSaveGrabbedFramesEnabled(enabled);
+	}
+}
+
 bool SettingsWindow::isWaylandGrabberEnabled() {
 	return ui->checkBox_EnableWaylandGrabber->isChecked();
+}
+
+bool SettingsWindow::isSaveGrabbedFramesEnabled() {
+	return ui->checkBox_SaveGrabbedFrames->isChecked();
 }
 #endif
 

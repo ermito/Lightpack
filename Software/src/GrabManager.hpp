@@ -37,6 +37,9 @@
 class GrabberContext;
 class TimeEvaluations;
 class D3D10Grabber;
+#ifdef WAYLAND_GRAB_SUPPORT
+class WaylandGrabber;
+#endif
 
 namespace BlueLightReduction { class Client; };
 namespace SystemSession { enum Status : int; };
@@ -116,6 +119,10 @@ private:
 
 #ifdef D3D10_GRAB_SUPPORT
 	D3D10Grabber *m_d3d10Grabber;
+#endif
+
+#ifdef WAYLAND_GRAB_SUPPORT
+	WaylandGrabber *m_waylandGrabber;
 #endif
 
 	BlueLightReduction::Client* m_blueLightClient;
