@@ -320,6 +320,9 @@ void SettingsWindow::connectSignalsSlots()
 #ifdef X11_GRAB_SUPPORT
 	connect(ui->radioButton_GrabX11, &QRadioButton::toggled, this, &SettingsWindow::onGrabberChanged);
 #endif
+#ifdef WAYLAND_GRAB_SUPPORT
+	connect(ui->radioButton_GrabWayland, &QRadioButton::toggled, this, &SettingsWindow::onGrabberChanged);
+#endif
 #ifdef MAC_OS_AV_GRAB_SUPPORT
 	connect(ui->radioButton_GrabMacAVFoundation, &QRadioButton::toggled, this, &SettingsWindow::onGrabberChanged);
 #endif
@@ -332,7 +335,6 @@ void SettingsWindow::connectSignalsSlots()
 #endif
 
 #ifdef WAYLAND_GRAB_SUPPORT
-	connect(ui->checkBox_EnableWaylandGrabber, &QCheckBox::toggled, this, &SettingsWindow::onWaylandGrabberEnabledChanged);
 	connect(ui->checkBox_SaveGrabbedFrames, &QCheckBox::toggled, this, &SettingsWindow::onSaveGrabbedFramesChanged);
 #endif
 
@@ -852,7 +854,7 @@ void SettingsWindow::initGrabbersRadioButtonsVisibility()
 	ui->checkBox_EnableDx9Capture->setVisible(false);
 #endif
 #ifndef WAYLAND_GRAB_SUPPORT
-	ui->checkBox_EnableWaylandGrabber->setVisible(false);
+	ui->radioButton_GrabWayland->setVisible(false);
 #endif
 #ifndef X11_GRAB_SUPPORT
 	ui->radioButton_GrabX11->setVisible(false);
@@ -2019,7 +2021,9 @@ void SettingsWindow::updateUiFromSettings()
 #endif
 
 #ifdef WAYLAND_GRAB_SUPPORT
-	ui->checkBox_EnableWaylandGrabber->setChecked(Settings::isWaylandGrabberEnabled());
+	if (Settings::getGrabberType() == Grab::GrabberTypeWayland) {
+		ui->radioButton_GrabWayland->setChecked(true);
+	}
 	ui->checkBox_SaveGrabbedFrames->setChecked(Settings::isSaveGrabbedFramesEnabled());
 #endif
 
@@ -2035,6 +2039,11 @@ Grab::GrabberType SettingsWindow::getSelectedGrabberType()
 #ifdef X11_GRAB_SUPPORT
 	if (ui->radioButton_GrabX11->isChecked()) {
 		return Grab::GrabberTypeX11;
+	}
+#endif
+#ifdef WAYLAND_GRAB_SUPPORT
+	if (ui->radioButton_GrabWayland->isChecked()) {
+		return Grab::GrabberTypeWayland;
 	}
 #endif
 #ifdef WINAPI_GRAB_SUPPORT
@@ -2066,22 +2075,11 @@ bool SettingsWindow::isDx1011CaptureEnabled() {
 }
 
 #ifdef WAYLAND_GRAB_SUPPORT
-void SettingsWindow::onWaylandGrabberEnabledChanged(bool isEnabled) {
-	if (!updatingFromSettings) {
-		DEBUG_LOW_LEVEL << Q_FUNC_INFO << isEnabled;
-		Settings::setWaylandGrabberEnabled(isEnabled);
-	}
-}
-
 void SettingsWindow::onSaveGrabbedFramesChanged(bool enabled) {
 	if (!updatingFromSettings) {
 		DEBUG_LOW_LEVEL << Q_FUNC_INFO << enabled;
 		Settings::setSaveGrabbedFramesEnabled(enabled);
 	}
-}
-
-bool SettingsWindow::isWaylandGrabberEnabled() {
-	return ui->checkBox_EnableWaylandGrabber->isChecked();
 }
 
 bool SettingsWindow::isSaveGrabbedFramesEnabled() {

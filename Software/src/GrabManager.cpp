@@ -85,13 +85,11 @@ GrabManager::GrabManager(QWidget *parent) : QObject(parent)
 
 	initGrabbers();
 
-	/* Auto-detect Wayland grabber during startup */
+	/* Select grabber type from unified Grabber setting */
 	Grab::GrabberType effectiveType = Settings::getGrabberType();
 #ifdef WAYLAND_GRAB_SUPPORT
-	if (Settings::isWaylandGrabberEnabled()) {
-		effectiveType = Grab::GrabberTypeWayland;
-		DEBUG_LOW_LEVEL << Q_FUNC_INFO << "Wayland grabber explicitly enabled in settings, using WaylandGrabber";
-	} else if (effectiveType == Grab::GrabberTypeX11 || effectiveType == Grab::GrabberTypeQt) {
+	if (effectiveType == Grab::GrabberTypeQt) {
+		/* Auto-detect Wayland for default Qt grabber on KDE Plasma */
 		const char *sessionType = qgetenv("XDG_SESSION_TYPE");
 		const char *desktop = qgetenv("XDG_CURRENT_DESKTOP");
 		if (sessionType && QString(sessionType).contains("wayland", Qt::CaseInsensitive)) {
@@ -234,13 +232,11 @@ void GrabManager::onGrabberTypeChanged(const Grab::GrabberType grabberType)
 	DEBUG_LOW_LEVEL << Q_FUNC_INFO << grabberType;
 	QApplication::setOverrideCursor(Qt::WaitCursor);
 
-	// Auto-detect Wayland grabber for KDE Plasma
+	// Select grabber type from unified Grabber setting
 	Grab::GrabberType effectiveType = grabberType;
 #ifdef WAYLAND_GRAB_SUPPORT
-	if (Settings::isWaylandGrabberEnabled()) {
-		effectiveType = Grab::GrabberTypeWayland;
-		DEBUG_LOW_LEVEL << Q_FUNC_INFO << "Wayland grabber explicitly enabled in settings, using WaylandGrabber";
-	} else if (effectiveType == Grab::GrabberTypeX11 || effectiveType == Grab::GrabberTypeQt) {
+	if (effectiveType == Grab::GrabberTypeQt) {
+		/* Auto-detect Wayland for default Qt grabber on KDE Plasma */
 		const char *sessionType = qgetenv("XDG_SESSION_TYPE");
 		const char *desktop = qgetenv("XDG_CURRENT_DESKTOP");
 		if (sessionType && QString(sessionType).contains("wayland", Qt::CaseInsensitive)) {

@@ -2731,6 +2731,13 @@ Internally emulates the effects of f.lux, redshift, Night Light, Night Shift...<
                 </widget>
                </item>
                <item>
+                <widget class="QRadioButton" name="radioButton_GrabWayland">
+                 <property name="text">
+                  <string>Wayland (PipeWire)</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
                 <widget class="QRadioButton" name="radioButton_GrabMacCoreGraphics">
                  <property name="text">
                   <string>Mac CG (Full screen)</string>
@@ -2834,17 +2841,6 @@ Internally emulates the effects of f.lux, redshift, Night Light, Night Shift...<
             </layout>
            </item>
           </layout>
-         </widget>
-        </item>
-        <item>
-         <widget class="QCheckBox" name="checkBox_EnableWaylandGrabber">
-          <property name="text">
-           <string>Use Wayland grabber (KDE Plasma)</string>
-          </property>
-          <property name="icon">
-           <iconset resource="../res/LightpackResources.qrc">
-            <normaloff>:/icons/uac-shield.png</normaloff>:/icons/uac-shield.png</iconset>
-          </property>
          </widget>
         </item>
         <item>
@@ -3303,13 +3299,13 @@ Internally emulates the effects of f.lux, redshift, Night Light, Night Shift...<
   <tabstop>lineEdit_ApiKey</tabstop>
   <tabstop>pushButton_GenerateNewApiKey</tabstop>
   <tabstop>radioButton_GrabX11</tabstop>
+  <tabstop>radioButton_GrabWayland</tabstop>
   <tabstop>radioButton_GrabMacCoreGraphics</tabstop>
   <tabstop>radioButton_GrabMacAVFoundation</tabstop>
   <tabstop>radioButton_GrabWinAPI</tabstop>
   <tabstop>radioButton_GrabDDupl</tabstop>
   <tabstop>checkBox_EnableDx1011Capture</tabstop>
   <tabstop>checkBox_EnableDx9Capture</tabstop>
-  <tabstop>checkBox_EnableWaylandGrabber</tabstop>
   <tabstop>spinBox_LoggingLevel</tabstop>
   <tabstop>toolButton_OpenLogs</tabstop>
   <tabstop>checkBox_PingDeviceEverySecond</tabstop>

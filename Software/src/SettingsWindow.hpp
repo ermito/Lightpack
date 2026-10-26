@@ -188,7 +188,6 @@ private slots:
 	void onDx9CaptureEnabledChanged(bool isEnabled);
 
 #ifdef WAYLAND_GRAB_SUPPORT
-	void onWaylandGrabberEnabledChanged(bool isEnabled);
 	void onSaveGrabbedFramesChanged(bool enabled);
 #endif
 
@@ -295,7 +294,6 @@ private:
 	bool isDx1011CaptureEnabled();
 
 #ifdef WAYLAND_GRAB_SUPPORT
-	bool isWaylandGrabberEnabled();
 	bool isSaveGrabbedFramesEnabled();
 #endif
 

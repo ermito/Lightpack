@@ -197,7 +197,6 @@ static const QString IsMinimumLuminosityEnabled = QStringLiteral("Grab/IsMinimum
 static const QString IsDx1011GrabberEnabled = QStringLiteral("Grab/IsDX1011GrabberEnabled");
 static const QString IsDx9GrabbingEnabled = QStringLiteral("Grab/IsDX9GrabbingEnabled");
 #ifdef WAYLAND_GRAB_SUPPORT
-static const QString IsWaylandGrabberEnabled = QStringLiteral("Grab/IsWaylandGrabberEnabled");
 static const QString SaveGrabbedFrames = QStringLiteral("Grab/SaveGrabbedFrames");
 #endif
 static const QString IsApplyBlueLightReductionEnabled = QStringLiteral("Grab/IsApplyGammaRampEnabled");
@@ -266,6 +265,7 @@ static const QString QtEachWidget = QStringLiteral("QtEachWidget");
 static const QString WinAPI = QStringLiteral("WinAPI");
 static const QString WinAPIEachWidget = QStringLiteral("WinAPIEachWidget");
 static const QString X11 = QStringLiteral("X11");
+static const QString WaylandPipeWire = QStringLiteral("WaylandPipeWire");
 static const QString D3D9 = QStringLiteral("D3D9");
 static const QString MacCoreGraphics = QStringLiteral("MacCoreGraphics");
 static const QString MacAVFoundation = QStringLiteral("MacAVFoundation");
@@ -1551,6 +1551,11 @@ Grab::GrabberType Settings::getGrabberType()
 		return Grab::GrabberTypeX11;
 #endif
 
+#ifdef WAYLAND_GRAB_SUPPORT
+	if (strGrabber == Profile::Value::GrabberType::WaylandPipeWire)
+		return Grab::GrabberTypeWayland;
+#endif
+
 #ifdef MAC_OS_CG_GRAB_SUPPORT
 	if (strGrabber == Profile::Value::GrabberType::MacCoreGraphics)
 		return Grab::GrabberTypeMacCoreGraphics;
@@ -1609,6 +1614,12 @@ void Settings::setGrabberType(Grab::GrabberType grabberType)
 		break;
 #endif
 
+#ifdef WAYLAND_GRAB_SUPPORT
+	case Grab::GrabberTypeWayland:
+		strGrabber = Profile::Value::GrabberType::WaylandPipeWire;
+		break;
+#endif
+
 #ifdef MAC_OS_CG_GRAB_SUPPORT
 	case Grab::GrabberTypeMacCoreGraphics:
 		strGrabber = Profile::Value::GrabberType::MacCoreGraphics;
@@ -1649,14 +1660,6 @@ void Settings::setDx9GrabbingEnabled(bool isEnabled) {
 #endif
 
 #ifdef WAYLAND_GRAB_SUPPORT
-bool Settings::isWaylandGrabberEnabled() {
-	return value(Profile::Key::Grab::IsWaylandGrabberEnabled).toBool();
-}
-
-void Settings::setWaylandGrabberEnabled(bool isEnabled) {
-	setValue(Profile::Key::Grab::IsWaylandGrabberEnabled, isEnabled);
-	emit m_this->waylandGrabberEnabledChanged(isEnabled);
-}
 bool Settings::isSaveGrabbedFramesEnabled() {
 	return value(Profile::Key::Grab::SaveGrabbedFrames).toBool();
 }
@@ -2132,7 +2135,6 @@ void Settings::initCurrentProfile(bool isResetDefault)
 	setNewOption(Profile::Key::Grab::IsDx1011GrabberEnabled,		Profile::Grab::IsDx1011GrabberEnabledDefault, isResetDefault);
 	setNewOption(Profile::Key::Grab::IsDx9GrabbingEnabled,			Profile::Grab::IsDx9GrabbingEnabledDefault, isResetDefault);
 #ifdef WAYLAND_GRAB_SUPPORT
-	setNewOption(Profile::Key::Grab::IsWaylandGrabberEnabled,		Profile::Grab::IsWaylandGrabberEnabledDefault, isResetDefault);
 	setNewOption(Profile::Key::Grab::SaveGrabbedFrames,				Profile::Grab::SaveGrabbedFramesDefault, isResetDefault);
 #endif
 	setNewOption(Profile::Key::Grab::IsApplyBlueLightReductionEnabled,		Profile::Grab::IsApplyBlueLightReductionEnabledDefault, isResetDefault);
