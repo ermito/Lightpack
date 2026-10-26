@@ -2166,7 +2166,10 @@ void Settings::initCurrentProfile(bool isResetDefault)
 
 	QPoint ledPosition;
 
-	for (int i = 0; i < MaximumNumberOfLeds::AbsoluteMaximum; i++)
+	// Use the actual LED count for the connected device instead of AbsoluteMaximum
+	const int maxLeds = qMax(getNumberOfLeds(getConnectedDevice()), 1);
+
+	for (int i = 0; i < maxLeds; i++)
 	{
 		ledPosition = getDefaultPosition(i);
 
