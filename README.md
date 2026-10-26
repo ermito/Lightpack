@@ -1,3 +1,10 @@
+> ⚠️ **DISCLAIMER: This is an experimental fork with Wayland/PipeWire support.**
+> All modifications in this fork were generated with **Qwen** (AI assistant). Use at your own risk — the Wayland screen-capture path is untested on most configurations and may crash, produce black frames, or fail to connect to the screencast portal.
+>
+> **Tested on:** Debian 13 (trixie) + KDE Plasma + PipeWire 1.4.2 + xdg-desktop-portal-kde.
+>
+> The original project and its documentation follow.
+
 <p align="center">
 	<img src="Software/res/icons/Prismatik.png" width="192" />
 </p>
@@ -125,6 +132,13 @@ You will need the following packages, usually all of them are in distro's reposi
 * if you are using gnome you'll need `gnome-shell-extension-appindicator` for a working tray icon
 * not required, but the update checker uses SSL sockets: `openssl`
 * for sound visualizer: `libpulse-dev`, `libfftw3-dev` (edit `build-vars.prf(.default)` and comment out `PULSEAUDIO_SUPPORT` to disable the feature)
+
+**Wayland/PipeWire screen-capture** (this fork):
+* `libportal-dev` — xdg-desktop-portal bindings
+* `libpipewire-0.3-dev` — PipeWire client library
+* `libspa-0.2-dev` — PipeWire SPA plugins
+* `libglib2.0-dev` — GLib/GIO (required by portal at compile time)
+* `libx11-dev`, `libxext-dev` — X11 grabber (fallback on X11 sessions)
 
 _(this is a Debian based example, see Software/dist_linux/*/Dockerfile for your particular package backend if available)_
 
