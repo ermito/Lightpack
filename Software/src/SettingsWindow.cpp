@@ -2067,7 +2067,6 @@ Grab::GrabberType SettingsWindow::getSelectedGrabberType()
 bool SettingsWindow::isDx1011CaptureEnabled() {
 	return ui->checkBox_EnableDx1011Capture->isChecked();
 }
-#endif
 
 // ----------------------------------------------------------------------------
 // Quit application
