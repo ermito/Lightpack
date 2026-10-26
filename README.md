@@ -1,7 +1,7 @@
 > ⚠️ **DISCLAIMER: This is an experimental fork with Wayland/PipeWire support.**
 > All modifications in this fork were generated with **Qwen** (AI assistant). Use at your own risk — the Wayland screen-capture path is untested on most configurations and may crash, produce black frames, or fail to connect to the screencast portal.
 >
-> **Tested on:** Debian 13 (trixie) + KDE Plasma + PipeWire 1.4.2 + xdg-desktop-portal-kde.
+> **Tested on:** Debian 13 (trixie) + KDE Plasma + PipeWire 1.4.2.
 >
 > The original project and its documentation follow.
 

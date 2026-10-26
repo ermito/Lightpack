@@ -14,6 +14,7 @@ Software/[^.]+.pro.user
 Software/apiexamples/.+\.pyc
 Software/deb/DEBIAN/md5sums
 Software/[^/\\]+\.deb
+Software/.*
 
 syntax: regexp
 Software/dist_windows/Output/
