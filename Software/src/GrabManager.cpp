@@ -685,15 +685,7 @@ void GrabManager::initGrabbers()
 	{
 		m_waylandGrabber = static_cast<WaylandGrabber *>(initGrabber(new WaylandGrabber(NULL, m_grabberContext)));
 		m_grabbers[Grab::GrabberTypeWayland] = m_waylandGrabber;
-		m_waylandGrabber->setSaveFramesEnabled(Settings::isSaveGrabbedFramesEnabled());
 	}
-	/* Update WaylandGrabber frame-saving flag when Settings change at runtime */
-	connect(Settings::settingsSingleton(), &Settings::saveGrabbedFramesEnabledChanged,
-	        this, [this](bool enabled) {
-			if (m_waylandGrabber) {
-				m_waylandGrabber->setSaveFramesEnabled(enabled);
-			}
-		});
 #endif
 
 #ifdef X11_GRAB_SUPPORT

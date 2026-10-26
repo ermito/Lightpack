@@ -196,9 +196,6 @@ static const QString OverBrighten = QStringLiteral("Grab/OverBrighten");
 static const QString IsMinimumLuminosityEnabled = QStringLiteral("Grab/IsMinimumLuminosityEnabled");
 static const QString IsDx1011GrabberEnabled = QStringLiteral("Grab/IsDX1011GrabberEnabled");
 static const QString IsDx9GrabbingEnabled = QStringLiteral("Grab/IsDX9GrabbingEnabled");
-#ifdef WAYLAND_GRAB_SUPPORT
-static const QString SaveGrabbedFrames = QStringLiteral("Grab/SaveGrabbedFrames");
-#endif
 static const QString IsApplyBlueLightReductionEnabled = QStringLiteral("Grab/IsApplyGammaRampEnabled");
 static const QString IsApplyColorTemperatureEnabled = QStringLiteral("Grab/IsApplyColorTemperatureEnabled");
 static const QString ColorTemperature = QStringLiteral("Grab/ColorTemperature");
@@ -1659,16 +1656,6 @@ void Settings::setDx9GrabbingEnabled(bool isEnabled) {
 }
 #endif
 
-#ifdef WAYLAND_GRAB_SUPPORT
-bool Settings::isSaveGrabbedFramesEnabled() {
-	return value(Profile::Key::Grab::SaveGrabbedFrames).toBool();
-}
-void Settings::setSaveGrabbedFramesEnabled(bool isEnabled) {
-	setValue(Profile::Key::Grab::SaveGrabbedFrames, isEnabled);
-	emit m_this->saveGrabbedFramesEnabledChanged(isEnabled);
-}
-#endif
-
 Lightpack::Mode Settings::getLightpackMode()
 {
 	DEBUG_LOW_LEVEL << Q_FUNC_INFO;
@@ -2134,9 +2121,6 @@ void Settings::initCurrentProfile(bool isResetDefault)
 	setNewOption(Profile::Key::Grab::IsMinimumLuminosityEnabled,	Profile::Grab::IsMinimumLuminosityEnabledDefault, isResetDefault);
 	setNewOption(Profile::Key::Grab::IsDx1011GrabberEnabled,		Profile::Grab::IsDx1011GrabberEnabledDefault, isResetDefault);
 	setNewOption(Profile::Key::Grab::IsDx9GrabbingEnabled,			Profile::Grab::IsDx9GrabbingEnabledDefault, isResetDefault);
-#ifdef WAYLAND_GRAB_SUPPORT
-	setNewOption(Profile::Key::Grab::SaveGrabbedFrames,				Profile::Grab::SaveGrabbedFramesDefault, isResetDefault);
-#endif
 	setNewOption(Profile::Key::Grab::IsApplyBlueLightReductionEnabled,		Profile::Grab::IsApplyBlueLightReductionEnabledDefault, isResetDefault);
 	setNewOption(Profile::Key::Grab::IsApplyColorTemperatureEnabled,Profile::Grab::IsApplyColorTemperatureEnabledDefault, isResetDefault);
 	setNewOption(Profile::Key::Grab::ColorTemperature,              Profile::Grab::ColorTemperatureDefault, isResetDefault);

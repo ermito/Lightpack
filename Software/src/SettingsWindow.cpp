@@ -334,11 +334,6 @@ void SettingsWindow::connectSignalsSlots()
 	connect(ui->checkBox_EnableDx9Capture, &QCheckBox::toggled, this, &SettingsWindow::onDx9CaptureEnabledChanged);
 #endif
 
-#ifdef WAYLAND_GRAB_SUPPORT
-	connect(ui->checkBox_SaveGrabbedFrames, &QCheckBox::toggled, this, &SettingsWindow::onSaveGrabbedFramesChanged);
-#endif
-
-
 	// Dev tab configure API (port, apikey)
 	connect(ui->groupBox_Api, &QGroupBox::toggled, this, &SettingsWindow::onEnableApi_Toggled);
 	connect(ui->checkBox_listenOnlyOnLoInterface, &QCheckBox::toggled, this, &SettingsWindow::onListenOnlyOnLoInterface_Toggled);
@@ -2024,7 +2019,6 @@ void SettingsWindow::updateUiFromSettings()
 	if (Settings::getGrabberType() == Grab::GrabberTypeWayland) {
 		ui->radioButton_GrabWayland->setChecked(true);
 	}
-	ui->checkBox_SaveGrabbedFrames->setChecked(Settings::isSaveGrabbedFramesEnabled());
 #endif
 
 	onMoodLampLiquidMode_Toggled(ui->radioButton_LiquidColorMoodLampMode->isChecked());
@@ -2072,18 +2066,6 @@ Grab::GrabberType SettingsWindow::getSelectedGrabberType()
 
 bool SettingsWindow::isDx1011CaptureEnabled() {
 	return ui->checkBox_EnableDx1011Capture->isChecked();
-}
-
-#ifdef WAYLAND_GRAB_SUPPORT
-void SettingsWindow::onSaveGrabbedFramesChanged(bool enabled) {
-	if (!updatingFromSettings) {
-		DEBUG_LOW_LEVEL << Q_FUNC_INFO << enabled;
-		Settings::setSaveGrabbedFramesEnabled(enabled);
-	}
-}
-
-bool SettingsWindow::isSaveGrabbedFramesEnabled() {
-	return ui->checkBox_SaveGrabbedFrames->isChecked();
 }
 #endif
 

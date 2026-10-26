@@ -2844,13 +2844,6 @@ Internally emulates the effects of f.lux, redshift, Night Light, Night Shift...<
          </widget>
         </item>
         <item>
-         <widget class="QCheckBox" name="checkBox_SaveGrabbedFrames">
-          <property name="text">
-           <string>Save grabbed frames to disk (debug)</string>
-          </property>
-         </widget>
-        </item>
-        <item>
          <layout class="QHBoxLayout" name="horizontalLayout_5">
           <item>
            <widget class="QLabel" name="label_LoggingLevel">

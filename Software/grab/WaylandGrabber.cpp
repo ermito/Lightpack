@@ -187,9 +187,12 @@ _pw_stream_param_changed(void *userData, uint32_t id, const struct spa_pod *para
     }
 }
 
-/* Debug frame-saving toggle. Written on the GUI thread (setSaveFramesEnabled),
- * read on the worker thread (_pw_stream_process). */
-static std::atomic<bool> s_saveFramesEnabled(false);
+/* Debug frame-saving toggle. Guarded by compile-time define:
+ * compile with -DDDEBUG_SAVE_FRAMES to enable frame saving. */
+#ifdef DEBUG_SAVE_FRAMES
+static const char *FRAME_DIR = "/tmp/prismatic-frames";
+static int frameCounter = 0;
+#endif
 
 /* Event-source callback — invoked on the worker thread when stopWorker()
  * (GUI thread) signals the source. Sets the flag that makes run() exit its
@@ -284,19 +287,19 @@ _pw_stream_process(void *userData)
         data->data = nullptr;
     }
 
-    /* Debug: save the frame as PNG when enabled (worker thread).
+#ifdef DEBUG_SAVE_FRAMES
+    /* Debug: save the frame as PNG.
      * QImage::Format_ARGB32 matches the BGRA memory layout of the
      * negotiated SPA_VIDEO_FORMAT_BGRA stream. The counter wraps so at
      * most ~100 recent frames stay on disk (a ring). */
-    if (s_saveFramesEnabled && dstBuf) {
+    if (dstBuf) {
         const int w = self->m_bufWidth;
         const int h = self->m_bufHeight;
         const int stride = self->m_bufStride;
         if (w > 0 && h > 0 && stride >= w * 4) {
-            static uint32_t s_dbgFrameCounter = 0;
             static bool s_dbgDirCreated = false;
             if (!s_dbgDirCreated) {
-                mkdir("/tmp/prismatic-frames", 0755);
+                mkdir(FRAME_DIR, 0755);
                 s_dbgDirCreated = true;
             }
             QImage img(w, h, QImage::Format_ARGB32);
@@ -305,12 +308,13 @@ _pw_stream_process(void *userData)
                 memcpy(img.scanLine(y), src + y * stride, w * 4);
             }
             char path[256];
-            snprintf(path, sizeof(path), "/tmp/prismatic-frames/frame_%06u.png",
-                     s_dbgFrameCounter);
+            snprintf(path, sizeof(path), "%s/frame_%06u.png",
+                     FRAME_DIR, frameCounter);
             img.save(path);
-            s_dbgFrameCounter = (s_dbgFrameCounter + 1) % 100;
+            frameCounter = (frameCounter + 1) % 100;
         }
     }
+#endif
 
     /* Signal that a frame is available */
     QMetaObject::invokeMethod(self, "frameReady");
@@ -591,16 +595,6 @@ WaylandGrabber::WaylandGrabber(QObject *parent, GrabberContext *context)
     , m_portalInitialized(false)
 {
     DEBUG_LOW_LEVEL << Q_FUNC_INFO << "WaylandGrabber created";
-}
-
-void WaylandGrabber::setSaveFramesEnabled(bool enabled)
-{
-    s_saveFramesEnabled = enabled;
-    if (enabled) {
-        /* Best-effort create the debug-frame directory (also done in
-         * _pw_stream_process on the first saved frame). */
-        mkdir("/tmp/prismatic-frames", 0755);
-    }
 }
 
 void WaylandGrabber::startGrabbing()

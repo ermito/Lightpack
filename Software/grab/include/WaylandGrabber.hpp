@@ -103,8 +103,6 @@ public:
     void startGrabbing() override;
     void stopGrabbing() override;
 
-    void setSaveFramesEnabled(bool enabled);
-
     DECLARE_GRABBER_NAME("WaylandGrabber")
 
 protected:
