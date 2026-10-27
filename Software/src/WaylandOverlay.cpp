@@ -18,6 +18,10 @@
 #include <QMutex>
 #include <QPainterPath>
 
+namespace {
+    constexpr int MinZoneSize = 50;
+}
+
 using namespace SettingsScope;
 
 QMap<QScreen*, WaylandOverlay*> WaylandOverlay::s_overlays;
@@ -192,6 +196,7 @@ void WaylandOverlay::mousePressEvent(QMouseEvent *event)
 			m_dragStartPos = pos;
 			m_dragZoneStartPos = it->geometry.topLeft();
 			setCursor(Qt::SizeAllCursor);
+			setMask(m_screen->geometry()); // Full screen mask during drag
 			return;
 		}
 	}
@@ -209,6 +214,7 @@ void WaylandOverlay::mousePressEvent(QMouseEvent *event)
 			m_dragStartPos = pos;
 			m_dragZoneStartPos = it->geometry.topLeft();
 			setCursor(Qt::ClosedHandCursor);
+			setMask(m_screen->geometry()); // Full screen mask during drag
 			return;
 		}
 	}
@@ -233,30 +239,63 @@ void WaylandOverlay::mouseMoveEvent(QMouseEvent *event)
 		} else {
 			// Resize — accumulate delta to handle missed mouseMove events
 			QPoint delta = pos - m_dragStartPos;
+
+			// Prevent resizing below minimum size (block movement instead)
+			if (m_resizeEdge == GrabZone::Top && m_zones[idx].geometry.height() <= MinZoneSize && delta.y() > 0) delta.setY(0);
+			if (m_resizeEdge == GrabZone::Bottom && m_zones[idx].geometry.height() <= MinZoneSize && delta.y() < 0) delta.setY(0);
+			if (m_resizeEdge == GrabZone::Left && m_zones[idx].geometry.width() <= MinZoneSize && delta.x() > 0) delta.setX(0);
+			if (m_resizeEdge == GrabZone::Right && m_zones[idx].geometry.width() <= MinZoneSize && delta.x() < 0) delta.setX(0);
+			// Diagonal corners
+			if (m_resizeEdge == GrabZone::LeftUp) {
+				if (m_zones[idx].geometry.width() <= MinZoneSize && delta.x() > 0) delta.setX(0);
+				if (m_zones[idx].geometry.height() <= MinZoneSize && delta.y() > 0) delta.setY(0);
+			}
+			if (m_resizeEdge == GrabZone::RightDown) {
+				if (m_zones[idx].geometry.width() <= MinZoneSize && delta.x() < 0) delta.setX(0);
+				if (m_zones[idx].geometry.height() <= MinZoneSize && delta.y() < 0) delta.setY(0);
+			}
+			if (m_resizeEdge == GrabZone::RightUp) {
+				if (m_zones[idx].geometry.width() <= MinZoneSize && delta.x() < 0) delta.setX(0);
+				if (m_zones[idx].geometry.height() <= MinZoneSize && delta.y() > 0) delta.setY(0);
+			}
+			if (m_resizeEdge == GrabZone::LeftDown) {
+				if (m_zones[idx].geometry.width() <= MinZoneSize && delta.x() > 0) delta.setX(0);
+				if (m_zones[idx].geometry.height() <= MinZoneSize && delta.y() < 0) delta.setY(0);
+			}
+
 			switch (m_resizeEdge) {
 				case GrabZone::Right:    newRect.setRight(newRect.right() + delta.x()); break;
 				case GrabZone::Left:     newRect.setLeft(newRect.left() + delta.x()); break;
 				case GrabZone::Top:      newRect.setTop(newRect.top() + delta.y()); break;
 				case GrabZone::Bottom:   newRect.setBottom(newRect.bottom() + delta.y()); break;
 				case GrabZone::RightDown: newRect.setBottomRight(newRect.bottomRight() + delta); break;
-				case GrabZone::RightUp:  newRect.setTopRight(newRect.topRight() + QPoint(delta.x(), -delta.y())); break;
-				case GrabZone::LeftDown: newRect.setBottomLeft(newRect.bottomLeft() + QPoint(-delta.x(), delta.y())); break;
+				case GrabZone::RightUp:  newRect.setTopRight(newRect.topRight() + delta); break;
+				case GrabZone::LeftDown: newRect.setBottomLeft(newRect.bottomLeft() + delta); break;
 				case GrabZone::LeftUp:   newRect.setTopLeft(newRect.topLeft() + delta); break;
 				case GrabZone::None:     break;
 			}
 			m_dragStartPos = pos;
 		}
 
-		// Clamp to screen
+		// Clamp to screen — stop movement, don't change size
 		const QRect screen = m_screen->geometry();
-		if (newRect.left() < screen.left()) newRect.setLeft(screen.left());
-		if (newRect.top() < screen.top()) newRect.setTop(screen.top());
-		if (newRect.right() > screen.right()) newRect.setRight(screen.right());
-		if (newRect.bottom() > screen.bottom()) newRect.setBottom(screen.bottom());
+		int dx = 0, dy = 0;
+		if (newRect.left() < screen.left()) dx = screen.left() - newRect.left();
+		if (newRect.right() > screen.right()) dx = screen.right() - newRect.right();
+		if (newRect.top() < screen.top()) dy = screen.top() - newRect.top();
+		if (newRect.bottom() > screen.bottom()) dy = screen.bottom() - newRect.bottom();
+
+		// If min size reached, cancel clamp movement on that axis
+		if (newRect.width() <= MinZoneSize) dx = 0;
+		if (newRect.height() <= MinZoneSize) dy = 0;
+
+		if (dx != 0 || dy != 0) {
+			newRect.translate(dx, dy);
+		}
 
 		// Minimum size
-		if (newRect.width() < 50) newRect.setWidth(50);
-		if (newRect.height() < 50) newRect.setHeight(50);
+		if (newRect.width() < MinZoneSize) newRect.setWidth(MinZoneSize);
+		if (newRect.height() < MinZoneSize) newRect.setHeight(MinZoneSize);
 
 		m_zones[idx].geometry = newRect;
 		emit zoneResizedOrMoved(m_draggingZoneId, newRect);
@@ -306,6 +345,7 @@ void WaylandOverlay::mouseReleaseEvent(QMouseEvent *)
 		m_draggingZoneId = -1;
 		m_resizeEdge = GrabZone::None;
 		setCursor(Qt::ArrowCursor);
+		updateInputRegion(); // Restore zone mask after drag
 	}
 }
 
