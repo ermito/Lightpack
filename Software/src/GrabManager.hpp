@@ -26,6 +26,7 @@
 #pragma once
 
 #include <QtGui>
+#include <QScreen>
 
 /* Workaround: glib-object.h can define 'public' macro conflicting with Qt. */
 #ifdef public
@@ -40,6 +41,9 @@ class D3D10Grabber;
 #ifdef WAYLAND_GRAB_SUPPORT
 class WaylandGrabber;
 #endif
+class WaylandOverlay;
+
+#include "GrabZone.hpp"
 
 namespace BlueLightReduction { class Client; };
 namespace SystemSession { enum Status : int; };
@@ -98,6 +102,7 @@ private slots:
 	void onFrameGrabAttempted(GrabResult result);
 	void updateScreenGeometry();
 	void onScreenCountChanged(QScreen* screen);
+	void onZoneColorChanged(int zoneId, const QColor &color);
 
 private:
 	void scaleLedWidgets(const int screenIndexResized, const QRect& geometry);
@@ -157,4 +162,12 @@ private:
 
 	bool m_isGrabWidgetsVisible;
 	GrabberContext * m_grabberContext;
+
+	// Wayland: per-screen overlay windows
+	bool m_waylandMode;
+	QMap<QScreen*, WaylandOverlay*> m_waylandOverlays;
+
+	// Wayland: zone data for overlay paint
+	QList<GrabZone> m_waylandZones;
+	QList<GrabWidget*> *m_waylandFellows = nullptr;
 };

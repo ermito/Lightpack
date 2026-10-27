@@ -34,6 +34,8 @@ namespace Ui {
 	class GrabWidget;
 }
 
+class WaylandOverlay;
+
 enum GrabWidgetFeature : int {
 	SyncSettings = 1 << 0,
 	AllowCoefConfig = 1 << 1,
@@ -70,6 +72,8 @@ public:
 	void setAreaEnabled(const bool);
 	void fillBackgroundWhite();
 	void fillBackgroundColored();
+
+	void setWaylandOverlay(WaylandOverlay *overlay) { m_waylandOverlay = overlay; }
 
 private:
 	void fillBackground(int index);
@@ -152,7 +156,11 @@ private:
 	int m_features;
 	QList<GrabWidget*> *m_fellows;
 
+	// Wayland: parent overlay window (null on X11)
+	WaylandOverlay *m_waylandOverlay;
+
 protected:
+	virtual void showEvent(QShowEvent *event) override;
 	virtual void mousePressEvent(QMouseEvent *pe);
 	virtual void mouseMoveEvent(QMouseEvent *pe);
 	virtual void mouseReleaseEvent(QMouseEvent *pe);

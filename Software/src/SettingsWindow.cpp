@@ -424,7 +424,12 @@ void SettingsWindow::onFocus()
 void SettingsWindow::onBlur()
 {
 	DEBUG_LOW_LEVEL << Q_FUNC_INFO;
-	emit showLedWidgets(false);
+	// On Wayland, don't hide zones on blur — the overlay may have received
+	// focus when the user clicked a zone. Zones stay visible while the dialog
+	// is open; they hide when the dialog is closed (via closeEvent).
+	if (QGuiApplication::platformName() != QLatin1String("wayland")) {
+		emit showLedWidgets(false);
+	}
 }
 
 void SettingsWindow::updateStatusBar() {

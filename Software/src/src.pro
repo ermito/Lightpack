@@ -306,6 +306,8 @@ INCLUDEPATH += . \
 SOURCES += \
     LightpackApplication.cpp  main.cpp   SettingsWindow.cpp  Settings.cpp \
     GrabWidget.cpp  GrabConfigWidget.cpp \
+    GrabZone.cpp \
+    WaylandOverlay.cpp \
     LogWriter.cpp \
     LedDeviceLightpack.cpp \
     LedDeviceAdalight.cpp \
@@ -356,6 +358,8 @@ HEADERS += \
     GrabManager.hpp \
     GrabWidget.hpp \
     GrabConfigWidget.hpp \
+    GrabZone.hpp \
+    WaylandOverlay.hpp \
     debug.h \
     LogWriter.hpp \
     alienfx/LFXDecl.h \

@@ -31,6 +31,7 @@
 #include "PrismatikMath.hpp"
 #include "Settings.hpp"
 #include "GrabWidget.hpp"
+#include "WaylandOverlay.hpp"
 #include "GrabberContext.hpp"
 #include "TimeEvaluations.hpp"
 #include "WinAPIGrabber.hpp"
@@ -120,6 +121,12 @@ GrabManager::GrabManager(QWidget *parent) : QObject(parent)
 	m_isGrabWidgetsVisible = false;
 	m_isGrabbingStarted = false;
 
+	// Detect Wayland mode
+	m_waylandMode = (QGuiApplication::platformName() == QLatin1String("wayland"));
+	if (m_waylandMode) {
+		DEBUG_LOW_LEVEL << Q_FUNC_INFO << "Wayland mode detected — using overlay architecture";
+	}
+
 	initColorLists(MaximumNumberOfLeds::Default);
 	initLedWidgets(MaximumNumberOfLeds::Default);
 
@@ -173,6 +180,12 @@ GrabManager::~GrabManager()
 	delete m_d3d10Grabber;
 	m_d3d10Grabber = NULL;
 #endif
+
+	// Clean up Wayland overlays (and their config widgets)
+	for (auto it = m_waylandOverlays.begin(); it != m_waylandOverlays.end(); ++it) {
+		delete it.value();
+	}
+	m_waylandOverlays.clear();
 
 	delete m_grabberContext;
 }
@@ -406,6 +419,21 @@ void GrabManager::settingsProfileChanged(const QString &profileName)
 	m_gamma = Settings::getGrabGamma();
 
 	setNumberOfLeds(Settings::getNumberOfLeds(Settings::getConnectedDevice()));
+
+	// Refresh zone settings if overlay is visible
+	if (m_waylandMode) {
+		WaylandOverlay *overlay = m_waylandOverlays.value(QGuiApplication::primaryScreen());
+		if (overlay && overlay->isOverlayVisible()) {
+			for (auto &zone : m_waylandZones) {
+				zone.enabled = Settings::isLedEnabled(zone.id);
+				zone.coefRed = Settings::getLedCoefRed(zone.id);
+				zone.coefGreen = Settings::getLedCoefGreen(zone.id);
+				zone.coefBlue = Settings::getLedCoefBlue(zone.id);
+			}
+			overlay->updateZones(m_waylandZones);
+			overlay->updateInputRegion();
+		}
+	}
 }
 
 void GrabManager::setVisibleLedWidgets(bool state)
@@ -414,13 +442,25 @@ void GrabManager::setVisibleLedWidgets(bool state)
 
 	m_isGrabWidgetsVisible = state;
 
-	for (int i = 0; i < m_ledWidgets.size(); i++)
-	{
-		if (state)
+	if (m_waylandMode) {
+		// Wayland: show/hide overlays (which contain all child widgets)
+		for (auto it = m_waylandOverlays.begin(); it != m_waylandOverlays.end(); ++it) {
+			if (state) {
+				it.value()->showOverlay();
+			} else {
+				it.value()->hideOverlay();
+			}
+		}
+	} else {
+		// X11: show/hide individual widgets
+		for (int i = 0; i < m_ledWidgets.size(); i++)
 		{
-			m_ledWidgets[i]->show();
-		} else {
-			m_ledWidgets[i]->hide();
+			if (state)
+			{
+				m_ledWidgets[i]->show();
+			} else {
+				m_ledWidgets[i]->hide();
+			}
 		}
 	}
 }
@@ -803,11 +843,37 @@ void GrabManager::initLedWidgets(int numberOfLeds)
 
 	const int widgetFlags = SyncSettings | AllowCoefConfig | AllowEnableConfig | AllowColorCycle | AllowMove | AllowResize;
 
+	// On Wayland: use a single overlay on the primary screen
+	// (avoids issues with cloned displays where QGuiApplication::screens()
+	// reports multiple screens but PipeWire captures only one)
+	if (m_waylandMode) {
+		QScreen *primary = QGuiApplication::primaryScreen();
+		if (!m_waylandOverlays.contains(primary)) {
+			WaylandOverlay *overlay = new WaylandOverlay(primary);
+			m_waylandOverlays[primary] = overlay;
+			m_waylandFellows = &m_ledWidgets;
+			connect(overlay, &WaylandOverlay::zoneResizedOrMoved,
+				this, &GrabManager::pauseWhileResizeOrMoving);
+			connect(overlay, &WaylandOverlay::zoneResizedOrMoveCompleted,
+				this, &GrabManager::resumeAfterResizeOrMoving);
+			connect(overlay, &WaylandOverlay::zoneColorChanged,
+				this, &GrabManager::onZoneColorChanged);
+		}
+	}
+
 	if (m_ledWidgets.size() == 0)
 	{
 		DEBUG_LOW_LEVEL << Q_FUNC_INFO << "First widget initialization";
 
-		GrabWidget * ledWidget = new GrabWidget(m_ledWidgets.size(), widgetFlags, &m_ledWidgets, m_parentWidget);
+		GrabWidget * ledWidget = nullptr;
+		if (m_waylandMode) {
+			// Wayland: child of the single primary overlay
+			WaylandOverlay *overlay = m_waylandOverlays.value(QGuiApplication::primaryScreen());
+			ledWidget = new GrabWidget(m_ledWidgets.size(), widgetFlags, &m_ledWidgets, overlay);
+			ledWidget->setWaylandOverlay(overlay);
+		} else {
+			ledWidget = new GrabWidget(m_ledWidgets.size(), widgetFlags, &m_ledWidgets, m_parentWidget);
+		}
 
 		connect(ledWidget, &GrabWidget::resizeOrMoveStarted, this, &GrabManager::pauseWhileResizeOrMoving);
 		connect(ledWidget, &GrabWidget::resizeOrMoveCompleted, this, &GrabManager::resumeAfterResizeOrMoving);
@@ -817,6 +883,27 @@ void GrabManager::initLedWidgets(int numberOfLeds)
 //		connect(ledWidget, SIGNAL(resizeOrMoveCompleted(int)), this, &GrabManager::firstWidgetPositionChanged);
 
 		m_ledWidgets << ledWidget;
+
+		// Wayland: create GrabZone data for overlay paint
+		if (m_waylandMode) {
+			GrabZone zone;
+			zone.id = m_ledWidgets.last()->getId();
+			zone.enabled = m_ledWidgets.last()->isAreaEnabled();
+			// Assign distinct color per zone (same palette as GrabWidget)
+			static const QColor bgColors[] = {
+				Qt::red, Qt::green, Qt::blue, Qt::yellow,
+				Qt::darkRed, Qt::darkGreen, Qt::darkBlue, Qt::darkYellow,
+				QColor(0, 242, 123), Qt::magenta, Qt::cyan, Qt::white
+			};
+			zone.backgroundColor = bgColors[zone.id % 12];
+			zone.textColor = Qt::black;
+			m_waylandZones.append(zone);
+			WaylandOverlay *overlay = m_waylandOverlays.value(QGuiApplication::primaryScreen());
+			overlay->addZone(zone);
+
+			// Transfer initial color to LED
+			onZoneColorChanged(zone.id, zone.backgroundColor);
+		}
 
 //		firstWidgetPositionChanged();
 	}
@@ -829,24 +916,92 @@ void GrabManager::initLedWidgets(int numberOfLeds)
 
 		for (int i = 0; i < diff; i++)
 		{
-			GrabWidget * ledWidget = new GrabWidget(m_ledWidgets.size(), widgetFlags, &m_ledWidgets, m_parentWidget);
+			GrabWidget * ledWidget = nullptr;
+			if (m_waylandMode) {
+				// Wayland: all widgets are children of the single primary overlay
+				WaylandOverlay *overlay = m_waylandOverlays.value(QGuiApplication::primaryScreen());
+				ledWidget = new GrabWidget(m_ledWidgets.size(), widgetFlags, &m_ledWidgets, overlay);
+				ledWidget->setWaylandOverlay(overlay);
+			} else {
+				ledWidget = new GrabWidget(m_ledWidgets.size(), widgetFlags, &m_ledWidgets, m_parentWidget);
+			}
 
 			connect(ledWidget, &GrabWidget::resizeOrMoveStarted, this, &GrabManager::pauseWhileResizeOrMoving);
 			connect(ledWidget, &GrabWidget::resizeOrMoveCompleted, this, &GrabManager::resumeAfterResizeOrMoving);
 
 			m_ledWidgets << ledWidget;
+
+			// Wayland: create GrabZone data for overlay paint
+			if (m_waylandMode) {
+				GrabZone zone;
+				zone.id = m_ledWidgets.last()->getId();
+				zone.enabled = m_ledWidgets.last()->isAreaEnabled();
+				// Assign distinct color per zone
+				static const QColor bgColors[] = {
+					Qt::red, Qt::green, Qt::blue, Qt::yellow,
+					Qt::darkRed, Qt::darkGreen, Qt::darkBlue, Qt::darkYellow,
+					QColor(0, 242, 123), Qt::magenta, Qt::cyan, Qt::white
+				};
+				zone.backgroundColor = bgColors[zone.id % 12];
+				zone.textColor = Qt::black;
+				m_waylandZones.append(zone);
+				WaylandOverlay *overlay = m_waylandOverlays.value(QGuiApplication::primaryScreen());
+				overlay->addZone(zone);
+
+				// Transfer initial color to LED
+				onZoneColorChanged(zone.id, zone.backgroundColor);
+			}
 		}
 	} else {
 		diff *= -1;
 		DEBUG_LOW_LEVEL << Q_FUNC_INFO << "Remove last" << diff << "grab widgets";
 
-		while (diff --> 0)
-		{
-			m_ledWidgets.last()->deleteLater();
-			m_ledWidgets.removeLast();
+		// Wayland: also remove zones
+		if (m_waylandMode) {
+			WaylandOverlay *overlay = m_waylandOverlays.value(QGuiApplication::primaryScreen());
+			while (diff --> 0 && !m_ledWidgets.isEmpty()) {
+				int removeId = m_ledWidgets.last()->getId();
+				m_ledWidgets.last()->deleteLater();
+				m_ledWidgets.removeLast();
+				// Remove zone by id
+				for (auto it = m_waylandZones.begin(); it != m_waylandZones.end(); ++it) {
+					if (it->id == removeId) { m_waylandZones.erase(it); break; }
+				}
+				if (overlay) overlay->removeZone(removeId);
+			}
+		} else {
+			while (diff --> 0)
+			{
+				m_ledWidgets.last()->deleteLater();
+				m_ledWidgets.removeLast();
+			}
 		}
 	}
 
 	if (m_ledWidgets.size() != numberOfLeds)
 		qCritical() << Q_FUNC_INFO << "Fail: m_ledWidgets.size()" << m_ledWidgets.size() << " != numberOfLeds" << numberOfLeds;
+}
+
+void GrabManager::onZoneColorChanged(int zoneId, const QColor &color)
+{
+	DEBUG_LOW_LEVEL << Q_FUNC_INFO << "zoneId:" << zoneId << "color:" << color;
+
+	// Convert QColor to RGB coefficients and update LED
+	double red = color.redF();
+	double green = color.greenF();
+	double blue = color.blueF();
+
+	Settings::setLedCoefRed(zoneId, red);
+	Settings::setLedCoefGreen(zoneId, green);
+	Settings::setLedCoefBlue(zoneId, blue);
+
+	// Update zone data
+	for (auto &zone : m_waylandZones) {
+		if (zone.id == zoneId) {
+			zone.coefRed = red;
+			zone.coefGreen = green;
+			zone.coefBlue = blue;
+			break;
+		}
+	}
 }

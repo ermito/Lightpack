@@ -31,6 +31,7 @@
 #endif
 #include <QTextItem>
 #include "GrabWidget.hpp"
+#include "WaylandOverlay.hpp"
 #include "ui_GrabWidget.h"
 #include "Settings.hpp"
 #include "debug.h"
@@ -70,6 +71,14 @@ GrabWidget::GrabWidget(int id, int features, QList<GrabWidget*> *fellows, QWidge
 	m_features = features;
 	setFellows(fellows);
 	m_backgroundColor = Qt::white;
+	m_waylandOverlay = nullptr;
+
+	// On Wayland: if no parent given, auto-assign to the primary overlay
+	// (used by ZonePlacementPage wizard and other code that creates top-level GrabWidgets)
+	if (parent == nullptr && QGuiApplication::platformName() == QLatin1String("wayland")) {
+		m_waylandOverlay = WaylandOverlay::primaryOverlay();
+		setParent(m_waylandOverlay);
+	}
 
 	setOpenConfigButtonBackground(m_backgroundColor);
 
@@ -141,7 +150,15 @@ void GrabWidget::saveSizeAndPosition()
 	if (m_features & SyncSettings) {
 		DEBUG_MID_LEVEL << Q_FUNC_INFO;
 
-		Settings::setLedPosition(m_selfId, pos());
+		// Always save in global coordinates (for child widgets on Wayland,
+		// pos() is parent-relative, so we map to global).
+		QPoint globalPos;
+		if (m_waylandOverlay) {
+			globalPos = mapToGlobal(QPoint(0, 0));
+		} else {
+			globalPos = pos();
+		}
+		Settings::setLedPosition(m_selfId, globalPos);
 		Settings::setLedSize(m_selfId, size());
 	}
 }
@@ -158,11 +175,24 @@ void GrabWidget::settingsProfileChanged()
 		m_configWidget->setIsAreaEnabled(Settings::isLedEnabled(m_selfId));
 		m_configWidget->setCoefs(m_coefs.red, m_coefs.green, m_coefs.blue);
 
-		move(Settings::getLedPosition(m_selfId));
+		// INI stores global coordinates. For child widgets on Wayland,
+		// convert to parent-relative.
+		QPoint globalPos = Settings::getLedPosition(m_selfId);
+		if (m_waylandOverlay) {
+			globalPos = mapFromGlobal(globalPos);
+		}
+		move(globalPos);
 		resize(Settings::getLedSize(m_selfId));
 
 		emit resizeOrMoveCompleted(m_selfId);
 	}
+}
+
+void GrabWidget::showEvent(QShowEvent *event)
+{
+	QWidget::showEvent(event);
+	// Wayland positions are applied in WaylandOverlay::showOverlay()
+	// via QTimer::singleShot(0, ...) — no need to handle here.
 }
 
 void GrabWidget::setCursorOnAll(Qt::CursorShape cursor)
@@ -176,6 +206,9 @@ void GrabWidget::setCursorOnAll(Qt::CursorShape cursor)
 
 void GrabWidget::mousePressEvent(QMouseEvent *pe)
 {
+	// On Wayland: overlay handles all mouse events, skip here
+	if (m_waylandOverlay) return;
+
 	DEBUG_MID_LEVEL << Q_FUNC_INFO << pe->pos();
 
 	mousePressPosition = pe->pos();
@@ -419,6 +452,9 @@ bool GrabWidget::snapEdgeToScreenOrClosestFellow(
 
 void GrabWidget::mouseMoveEvent(QMouseEvent *pe)
 {
+	// On Wayland: overlay handles all mouse events, skip here
+	if (m_waylandOverlay) return;
+
 	DEBUG_HIGH_LEVEL << Q_FUNC_INFO << "pe->pos() =" << pe->pos();
 
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 10, 0))
@@ -438,6 +474,11 @@ void GrabWidget::mouseMoveEvent(QMouseEvent *pe)
 	if (cmd == NOP ){
 		checkAndSetCursors(pe);
 	} else if (cmd == MOVE) {
+		// On Wayland: overlay manages input region itself
+		if (m_waylandOverlay) {
+			// No action needed — overlay handles input region
+		}
+
 		QPoint moveHere;
 		moveHere = globalPos - mousePressPosition;
 		QRect newRect = QRect(moveHere, geometry().size());
@@ -472,7 +513,12 @@ void GrabWidget::mouseMoveEvent(QMouseEvent *pe)
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 10, 0))
 		if (QGuiApplication::screenAt(newRect.center()) == nullptr) return;
 #endif
-		move(newRect.topLeft());
+		// For child widgets on Wayland, convert global to parent-relative
+		if (m_waylandOverlay) {
+			move(mapFromGlobal(newRect.topLeft()));
+		} else {
+			move(newRect.topLeft());
+		}
 	} else {
 		QRect newRect = resizeAccordingly(pe);
 
@@ -514,8 +560,15 @@ void GrabWidget::mouseMoveEvent(QMouseEvent *pe)
 		if (newRect.size() != geometry().size()) {
 			resize(newRect.size());
 		}
-		if (newRect.topLeft() != geometry().topLeft()) {
-			move(newRect.topLeft());
+		// For child widgets on Wayland, convert global to parent-relative
+		if (m_waylandOverlay) {
+			if (mapFromGlobal(newRect.topLeft()) != geometry().topLeft()) {
+				move(mapFromGlobal(newRect.topLeft()));
+			}
+		} else {
+			if (newRect.topLeft() != geometry().topLeft()) {
+				move(newRect.topLeft());
+			}
 		}
 	}
 }
