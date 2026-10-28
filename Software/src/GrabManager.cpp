@@ -463,6 +463,8 @@ void GrabManager::setVisibleLedWidgets(bool state)
 			}
 		}
 	}
+
+    clearZones();
 }
 
 void GrabManager::setColoredLedWidgets(bool state)
@@ -1037,10 +1039,26 @@ void GrabManager::onZoneColorChanged(int zoneId, const QColor &color)
 	}
 }
 
+void GrabManager::clearZones()
+{
+    for (auto &zone : m_waylandZones) {
+        Settings::setLedCoefRed(zone.id, 1.0);
+        Settings::setLedCoefGreen(zone.id, 1.0);
+        Settings::setLedCoefBlue(zone.id, 1.0);
+        zone.coefRed = 1.0;
+        zone.coefGreen = 1.0;
+        zone.coefBlue = 1.0;
+    }
+}
+
 void GrabManager::onOverlayHidden()
 {
 	DEBUG_LOW_LEVEL << Q_FUNC_INFO;
 	// Hide overlay and notify SettingsWindow to uncheck radio button
 	m_isGrabWidgetsVisible = false;
+
+    // Reset all zone coefficients to 1.0
+    clearZones();
+
 	emit grabWidgetsVisibilityChanged(false);
 }

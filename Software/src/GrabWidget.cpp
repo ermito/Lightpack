@@ -107,8 +107,9 @@ GrabWidget::GrabWidget(int id, int features, QList<GrabWidget*> *fellows, QWidge
 		ui->button_OpenConfig->setVisible(false);
 	}
 
-	if (features & SyncSettings)
-		settingsProfileChanged();
+	// NOTE: settingsProfileChanged() is NOT called here.
+	// The caller (GrabManager) calls it after setWaylandOverlay() is set,
+	// ensuring m_waylandOverlay is valid when positions are loaded.
 
 	if (features & (SyncSettings | AllowCoefConfig | AllowEnableConfig))
 		connect(ui->button_OpenConfig, &QPushButton::clicked, this, &GrabWidget::onOpenConfigButton_Clicked);
@@ -126,15 +127,25 @@ QRect GrabWidget::deviceFrameGeometry() const
 {
 #if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0))
 	// Qt6 uses device independent coordinates but our captured image is in device coordinates.
-	// Move an scale the rect from its device-independent position to its pyhsical.
-	QPoint widgetTopLeft = frameGeometry().topLeft();
+	// Map to global coordinates first, then scale to physical device coordinates.
+	// This works for both top-level widgets and child widgets (Wayland overlay children).
+	QPoint globalTopLeft = mapToGlobal(geometry().topLeft());
 	QPoint screenTopLeft = screen()->geometry().topLeft();
-	QPoint offset = widgetTopLeft - screenTopLeft;
-	QRect adjustedRect(offset * screen()->devicePixelRatio(), frameGeometry().size() * screen()->devicePixelRatio());
+	QPoint offset = globalTopLeft - screenTopLeft;
+	QRect adjustedRect(offset * screen()->devicePixelRatio(), geometry().size() * screen()->devicePixelRatio());
 	DEBUG_HIGH_LEVEL << Q_FUNC_INFO << "adjusted: " << Debug::toString(adjustedRect);
 	return adjustedRect;
 #else
-	return frameGeometry();
+	// Always return global/screen coordinates.
+	// For top-level widgets this equals frameGeometry(); for child widgets
+	// (Wayland overlay children) frameGeometry() is parent-relative.
+	// mapToGlobal() on Qt5/Wayland may apply spurious DPR scaling, so
+	// compute global position manually: parent global + local offset.
+	QRect geo = geometry();
+	QPoint localTopLeft = geo.topLeft();
+	QWidget *parentW = parentWidget();
+	QPoint parentGlobal = parentW ? parentW->mapToGlobal(QPoint(0, 0)) : QPoint();
+	return QRect(parentGlobal + localTopLeft, geo.size());
 #endif
 }
 
@@ -151,10 +162,12 @@ void GrabWidget::saveSizeAndPosition()
 		DEBUG_MID_LEVEL << Q_FUNC_INFO;
 
 		// Always save in global coordinates (for child widgets on Wayland,
-		// pos() is parent-relative, so we map to global).
+		// pos() is parent-relative, so we compute global manually to avoid
+		// mapToGlobal() spurious DPR scaling on Qt5/Wayland).
 		QPoint globalPos;
 		if (m_waylandOverlay) {
-			globalPos = mapToGlobal(QPoint(0, 0));
+			QPoint parentGlobal = m_waylandOverlay->mapToGlobal(QPoint(0, 0));
+			globalPos = parentGlobal + pos();
 		} else {
 			globalPos = pos();
 		}

@@ -70,7 +70,9 @@ public:
 	// Common options
 	void setNumberOfLeds(int numberOfLeds);
 	void reset();
-
+    
+    void clearZones();
+    
 public slots:
 	void onGrabberTypeChanged(const Grab::GrabberType grabberType);
 	void onGrabSlowdownChanged(int ms);

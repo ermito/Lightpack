@@ -146,13 +146,17 @@ void GrabberBase::grab()
 		++grabScreensCount;
 		_context->grabResult->clear();
 
+
 		for (int i = 0; i < _context->grabWidgets->size(); ++i) {
-			if (!_context->grabWidgets->at(i)->isAreaEnabled()) {
+			const GrabWidget* widget = _context->grabWidgets->at(i);
+
+			QRect widgetRect = widget->deviceFrameGeometry();
+
+			if (!widget->isAreaEnabled()) {
 				_context->grabResult->append(qRgb(0,0,0));
 				continue;
 			}
-			const GrabWidget* widget = _context->grabWidgets->at(i);
-			QRect widgetRect = widget->deviceFrameGeometry();
+
 			getValidRect(widgetRect);
 
 			const GrabbedScreen *grabbedScreen = screenOfWidget(*widget);
