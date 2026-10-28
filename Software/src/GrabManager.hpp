@@ -61,6 +61,7 @@ signals:
 	void ambilightTimeOfUpdatingColors(double ms);
 	void changeScreen();
 	void onSessionChange(SystemSession::Status change);
+	void grabWidgetsVisibilityChanged(bool visible);
 
 public:
 
@@ -103,6 +104,7 @@ private slots:
 	void updateScreenGeometry();
 	void onScreenCountChanged(QScreen* screen);
 	void onZoneColorChanged(int zoneId, const QColor &color);
+	void onOverlayHidden();
 
 private:
 	void scaleLedWidgets(const int screenIndexResized, const QRect& geometry);
@@ -170,4 +172,7 @@ private:
 	// Wayland: zone data for overlay paint
 	QList<GrabZone> m_waylandZones;
 	QList<GrabWidget*> *m_waylandFellows = nullptr;
+
+	// Wayland: white mode (all white zones)
+	bool m_waylandWhiteMode = false;
 };

@@ -474,6 +474,23 @@ void GrabManager::setColoredLedWidgets(bool state)
 	{
 		for (int i = 0; i < m_ledWidgets.size(); i++)
 			m_ledWidgets[i]->fillBackgroundColored();
+
+		// Wayland: reset white mode and restore colored zones
+		m_waylandWhiteMode = false;
+		static const QColor bgColors[] = {
+			Qt::red, Qt::green, Qt::blue, Qt::yellow,
+			Qt::darkRed, Qt::darkGreen, Qt::darkBlue, Qt::darkYellow,
+			QColor(0, 242, 123), Qt::magenta, Qt::cyan, Qt::white
+		};
+		WaylandOverlay *overlay = m_waylandOverlays.value(QGuiApplication::primaryScreen());
+		if (overlay) {
+			for (auto &zone : m_waylandZones) {
+				zone.backgroundColor = bgColors[zone.id % 12];
+			}
+			overlay->updateZones(m_waylandZones);
+			overlay->showOverlay();
+			m_isGrabWidgetsVisible = true;
+		}
 	}
 }
 
@@ -486,6 +503,18 @@ void GrabManager::setWhiteLedWidgets(bool state)
 	{
 		for (int i = 0; i < m_ledWidgets.size(); i++)
 			m_ledWidgets[i]->fillBackgroundWhite();
+
+		// Wayland: update white mode and show overlay
+		m_waylandWhiteMode = true;
+		WaylandOverlay *overlay = m_waylandOverlays.value(QGuiApplication::primaryScreen());
+		if (overlay) {
+			for (auto &zone : m_waylandZones) {
+				zone.backgroundColor = Qt::white;
+			}
+			overlay->updateZones(m_waylandZones);
+			overlay->showOverlay();
+			m_isGrabWidgetsVisible = true;
+		}
 	}
 }
 
@@ -858,6 +887,8 @@ void GrabManager::initLedWidgets(int numberOfLeds)
 				this, &GrabManager::resumeAfterResizeOrMoving);
 			connect(overlay, &WaylandOverlay::zoneColorChanged,
 				this, &GrabManager::onZoneColorChanged);
+			connect(overlay, &WaylandOverlay::overlayHidden,
+				this, &GrabManager::onOverlayHidden);
 		}
 	}
 
@@ -895,7 +926,7 @@ void GrabManager::initLedWidgets(int numberOfLeds)
 				Qt::darkRed, Qt::darkGreen, Qt::darkBlue, Qt::darkYellow,
 				QColor(0, 242, 123), Qt::magenta, Qt::cyan, Qt::white
 			};
-			zone.backgroundColor = bgColors[zone.id % 12];
+			zone.backgroundColor = m_waylandWhiteMode ? Qt::white : bgColors[zone.id % 12];
 			zone.textColor = Qt::black;
 			m_waylandZones.append(zone);
 			WaylandOverlay *overlay = m_waylandOverlays.value(QGuiApplication::primaryScreen());
@@ -942,7 +973,7 @@ void GrabManager::initLedWidgets(int numberOfLeds)
 					Qt::darkRed, Qt::darkGreen, Qt::darkBlue, Qt::darkYellow,
 					QColor(0, 242, 123), Qt::magenta, Qt::cyan, Qt::white
 				};
-				zone.backgroundColor = bgColors[zone.id % 12];
+				zone.backgroundColor = m_waylandWhiteMode ? Qt::white : bgColors[zone.id % 12];
 				zone.textColor = Qt::black;
 				m_waylandZones.append(zone);
 				WaylandOverlay *overlay = m_waylandOverlays.value(QGuiApplication::primaryScreen());
@@ -1004,4 +1035,12 @@ void GrabManager::onZoneColorChanged(int zoneId, const QColor &color)
 			break;
 		}
 	}
+}
+
+void GrabManager::onOverlayHidden()
+{
+	DEBUG_LOW_LEVEL << Q_FUNC_INFO;
+	// Hide overlay and notify SettingsWindow to uncheck radio button
+	m_isGrabWidgetsVisible = false;
+	emit grabWidgetsVisibilityChanged(false);
 }

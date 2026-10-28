@@ -821,6 +821,7 @@ void LightpackApplication::initGrabManager()
 
 		// GrabManager to this
 		connect(m_grabManager, &GrabManager::ambilightTimeOfUpdatingColors, m_settingsWindow, &SettingsWindow::refreshAmbilightEvaluated);
+		connect(m_grabManager, &GrabManager::grabWidgetsVisibilityChanged, this, &LightpackApplication::showLedWidgets);
 
 #ifdef SOUNDVIZ_SUPPORT
 		if (m_soundManager) {

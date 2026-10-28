@@ -44,6 +44,7 @@ signals:
 	void zoneResizedOrMoved(int id, const QRect &newGeometry);
 	void zoneResizedOrMoveCompleted(int id, const QRect &finalGeometry);
 	void zoneColorChanged(int id, const QColor &color);
+	void overlayHidden();
 
 protected:
 	void paintEvent(QPaintEvent *event) override;

@@ -380,6 +380,7 @@ void WaylandOverlay::keyPressEvent(QKeyEvent *event)
 {
 	if (event->key() == Qt::Key_Escape) {
 		hideOverlay();
+		emit overlayHidden();
 	} else {
 		QWidget::keyPressEvent(event);
 	}
